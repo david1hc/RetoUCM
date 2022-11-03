@@ -3,11 +3,7 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
-<<<<<<< HEAD
 
-
-=======
->>>>>>> f6496693c817216749f8b23c79b262f87203a148
 class Points:
 
     def __init__(self, n_points, verbose=False) -> None:
@@ -58,7 +54,7 @@ class Points:
     def create_m30(self):
 
         df = pd.read_csv("data/points_m30.csv").reset_index(drop=True)
-        df["id_point"] = df.index
+        df["id_point"] = pd.Series(df.index).apply(lambda x: f"P{x}")
         return df
 
     def plot_points(self):
