@@ -3,8 +3,11 @@ import numpy as np
 import pandas as pd
 from shapely.geometry import Point
 from shapely.geometry.polygon import Polygon
+<<<<<<< HEAD
 
 
+=======
+>>>>>>> f6496693c817216749f8b23c79b262f87203a148
 class Points:
 
     def __init__(self, n_points, verbose=False) -> None:
@@ -13,6 +16,7 @@ class Points:
         self.df_m30 = self.create_m30()
         self.polygon_m30 = self.create_m30_polygon()
         self.df_centers = self.create_centers()
+        self.polygon_m30 = self.create_m30_polygon()
         self.df_points = self.create_points(n_points)
         if verbose:
             self.plot_points()
