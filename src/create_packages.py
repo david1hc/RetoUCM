@@ -94,6 +94,8 @@ class Package:
                 list(zip(weights, start_pos_list, del_pos_list)),
                 columns=["peso","id_centro","id_pos"]
                 )
+        df["id_paquete"] = pd.Series(df.index).apply(lambda x: f"PK{x}")
+
         return df
 
 
