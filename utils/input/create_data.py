@@ -3,6 +3,7 @@ import pandas as pd
 def create_centers():
 
     df = pd.read_csv("utils/data/points_centers.csv")
+    #TODO Incluir tipo de cargador
 
     return df
 
