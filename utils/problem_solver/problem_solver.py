@@ -11,7 +11,7 @@ class Van:
         self.position = (0, 0)
         self.van_id = van_id
 
-    def add_packages(self, new_packages: []):
+    def add_packages(self, new_packages:list=[]):
         self.packages.append(new_packages)
 
     def deliver_packages(self, pks_to_deliver):
