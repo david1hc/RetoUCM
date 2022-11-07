@@ -1,3 +1,4 @@
+from utils import df_centers, df_m30
 import matplotlib.pyplot as plt
 import numpy as np
 import pandas as pd
@@ -8,21 +9,13 @@ class Points:
 
     def __init__(self, n_points, verbose=False) -> None:
         
-        
-        self.df_m30 = self.create_m30()
+        self.df_m30 = df_m30
         self.polygon_m30 = self.create_m30_polygon()
-        self.df_centers = self.create_centers()
+        self.df_centers = df_centers
         self.polygon_m30 = self.create_m30_polygon()
-        self.df_points = self.create_points(n_points)
+        self.df_points = self.create_points(n_points).drop(columns=["in"])
         if verbose:
             self.plot_points()
-
-    def create_centers(self):
-
-        df = pd.read_csv("data/points_centers.csv")
-        df["id_point"] = df.index
-
-        return df
     
     def create_m30_polygon(self):
 
@@ -47,14 +40,10 @@ class Points:
             df = pd.concat([
                 df[df["in"]],
                 self.create_points(sum(~df["in"]))
-            ])
-
-        return df.reset_index(drop=True)
-
-    def create_m30(self):
-
-        df = pd.read_csv("data/points_m30.csv").reset_index(drop=True)
+            ]).reset_index(drop=True)
+        
         df["id_point"] = pd.Series(df.index).apply(lambda x: f"P{x}")
+
         return df
 
     def plot_points(self):

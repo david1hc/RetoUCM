@@ -1,16 +1,15 @@
-from properties.properties import properties_package as pack_prop
-from random import randint, choices
+from utils import pack_prop
 from copy import deepcopy
 import pandas as pd
-
-#TODO Añadir id_paquete = index
-#TODO Leer los id_pos de la clase Points
+import numpy as np
 
 class Package:
 
-    def __init__(self, num_packg):
+    def __init__(self, num_packg, num_points):
 
         self.num_packg = num_packg
+        self.num_points = num_points
+        self.pos_list = ['A', 'B', 'C']
         self.types_dict = self.create_types_dict()
         self.df_packg = self.create_random_packages()
 
@@ -38,8 +37,9 @@ class Package:
         probs = []
         for type, props in self.types_dict.items():
             types.append(type)
-            probs.append(props['prob'])
-        sel_types = choices(types, probs, k=k)
+            probs.append(props['prob']/100)
+        
+        sel_types = np.random.choice(types, p=probs, size=k)
         return sel_types
 
     def random_package_weights(self, types: [int]) -> [int]:
@@ -54,7 +54,7 @@ class Package:
         for type in types:
             min_weight = self.types_dict[type]['min_weight'] + 1
             max_weight = self.types_dict[type]['max_weight']
-            sel_weights.append(randint(min_weight, max_weight))
+            sel_weights.append(np.random.randint(min_weight, max_weight))
         return sel_weights
 
     @staticmethod
@@ -67,38 +67,34 @@ class Package:
         :return: Lista de k posiciones iniciales
         '''
 
-        return choices(pos_list, k=k)
+        return np.random.choice(pos_list, size=k)
 
+    def create_del_post_list(self):
+        del_list = [f"P{i}" for i in range(self.num_points)]
 
-    def create_random_packages(self,pos_list: [str] = ['a', 'b', 'c'], del_list: [str] = []) -> pd.DataFrame:
-        '''
-        Función para crear una lista con k paquetes aleatorios
+        if self.num_packg >= self.num_points:
+            del_post_list = del_list[:self.num_points] + list(np.random.choice(del_list, size=self.num_packg - self.num_points))
+            del_post_list = list(np.random.permutation(del_post_list))
 
-        :param pos_list: Lista de posibles posiciones iniciales
-        :param del_list: Lista de posibles posiciones de entrega
-        :return: Lista de k Paquetes
-        '''
+        else:
+            print("Hay más paquetes que puntos")
+            del_post_list = []
+        
+        return del_post_list
+        
+
+    def create_random_packages(self) -> pd.DataFrame:
 
         types = self.random_package_types(self.num_packg)
         weights = self.random_package_weights(types)
-        start_pos_list = self.random_start_pos(pos_list, self.num_packg)
-        if not del_list:
-            del_pos_list =  []
-            for st_pos in start_pos_list:
-                pos_list2 = deepcopy(pos_list)
-                pos_list2.remove(st_pos)
-                del_pos_list.append(choices(pos_list2, k=1)[0])
-        else:
-            del_pos_list = choices(del_list, k=self.num_packg)
+        start_pos_list = self.random_start_pos(self.pos_list, self.num_packg)
+        del_pos_list = self.create_del_post_list()
+
         df = pd.DataFrame(
                 list(zip(weights, start_pos_list, del_pos_list)),
                 columns=["peso","id_centro","id_pos"]
                 )
+
         df["id_paquete"] = pd.Series(df.index).apply(lambda x: f"PK{x}")
 
         return df
-
-
-if __name__ == '__main__':
-    print(Package(4).df_packg)
-
