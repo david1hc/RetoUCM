@@ -16,7 +16,7 @@ class Package:
     @staticmethod
     def create_types_dict():
         types_dict = {}
-        for t in pack_prop['types']:
+        for t in pack_prop:
             _type, prob, min_weight, max_weight = eval(t)
             types_dict[_type] = {}
             types_dict[_type]['prob'] = prob

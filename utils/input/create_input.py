@@ -36,6 +36,6 @@ class GetInput:
         
         os.mkdir(self.path_base)
 
-        self.df_centers.to_csv(f"{self.path_base}/centers.csv",index=False,sep=";")
+        self.df_centers.drop(columns=["chargers_type"]).to_csv(f"{self.path_base}/centers.csv",index=False,sep=";")
         self.df_points.to_csv(f"{self.path_base}/points.csv",index=False,sep=";")
         self.df_packg.to_csv(f"{self.path_base}/packages.csv",index=False,sep=";")

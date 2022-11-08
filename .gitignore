@@ -1,5 +1,11 @@
 #Pyenv
 .python-version
 
+#Pycharm
+*.idea
+
 #python package
 *.pyc
+
+#Folder Data
+data/*
