@@ -42,7 +42,7 @@ class Points:
                 self.create_points(sum(~df["in"]))
             ]).reset_index(drop=True)
         
-        df["id_point"] = pd.Series(df.index).apply(lambda x: f"P{x}")
+        df["id_pos"] = pd.Series(df.index).apply(lambda x: f"P{x}")
 
         return df
 

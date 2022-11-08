@@ -9,7 +9,7 @@ class Package:
 
         self.num_packg = num_packg
         self.num_points = num_points
-        self.pos_list = ['A', 'B', 'C']
+        self.pos_list = ['C1', 'C2', 'C3']
         self.types_dict = self.create_types_dict()
         self.df_packg = self.create_random_packages()
 
