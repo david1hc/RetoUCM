@@ -1,7 +1,11 @@
+import os
+os.chdir('../..')
+
 import pandas as pd
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 import numpy as np
+from utils import GetInput
 
 
 class Van:
@@ -47,18 +51,28 @@ class LogisticCenter:
 
 class Solver:
 
-    def __init__(self, weight_maxdist=False, verbose=False) -> None:
+    def __init__(self, weight_maxdist=False, path_input=None, verbose=False) -> None:
 
-        self.df_centers = pd.read_csv("../data/Centros-RetoAccenture.csv", sep=';')
-        self.df_chargers = pd.read_csv("../properties/chargers.csv")
-        self.df_packages = pd.read_csv("../data/Paquetes-RetoAccenture.csv", sep=';')
+        self.df_centers = pd.read_csv(path_input+"/centers.csv", sep=';')
+        #self.df_chargers = pd.read_csv("../properties/chargers.csv")
+        self.df_packages = pd.read_csv(path_input+"/packages.csv", sep=';')
         self.logistic_centers = self.set_centers()
-        self.df_points = pd.read_csv("../data/Posiciones-RetoAccenture.csv", sep=';')
+        self.df_points = pd.read_csv(path_input+"/points.csv", sep=';')
         self.max_dist = self.set_max_dist(weight_maxdist)
         self.vans_list = [Van(van_id='1', max_dist=self.max_dist), Van(van_id='2', max_dist=self.max_dist), Van(van_id='3', max_dist=self.max_dist), Van(van_id='4', max_dist=self.max_dist)]
-        # self.dist_matrix = self.calculate_distance_matrix(pd.concat([self.df_points[['coord_x', 'coord_y']], self.df_centers[['coord_x', 'coord_y']]]))
         self.velocity = 50
+        self.dist_factor = self.calculate_dist_factor()
         self.feasible_solution = self.check_feasible_solution()
+
+    def calculate_dist_factor(self):
+        # TODO: crear matriz
+        coord_c1 = self.df_centers[self.df_centers['id_centro'] == 'C1'][['coord_x', 'coord_y']].reset_index(drop=True)
+        coord_c2 = self.df_centers[self.df_centers['id_centro'] == 'C2'][['coord_x', 'coord_y']].reset_index(drop=True)
+        dist_c1c2 = np.sqrt((coord_c1.coord_x - coord_c2.coord_x)**2 + (coord_c1.coord_y - coord_c2.coord_y)**2)
+        dist_km = 7.54
+        factor_km = dist_km/dist_c1c2.iloc[0]
+        return factor_km
+
 
     def _split_pckgs_by_center(self, center_id):
         packages = self.df_packages.loc[self.df_packages['id_centro'] == center_id]
@@ -75,11 +89,11 @@ class Solver:
         if bool_weight:
             return 300
         else:
-            return 0.15
+            return 210
 
     def calculate_distance_matrix(self, df):
         dist_array = pdist(df)
-        dist_matrix = squareform(dist_array)
+        dist_matrix = squareform(dist_array)*self.dist_factor
         return dist_matrix
 
     def _add_pos_to_pckgs(self, packages):
@@ -187,5 +201,9 @@ class Solver:
 
 
 if __name__ == "__main__":
-    test_solver = Solver()
+
+    gi = GetInput(200, 125)
+    gi.save()
+    path = gi.path_base
+    test_solver = Solver(path_input=path)
 
