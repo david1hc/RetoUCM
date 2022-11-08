@@ -15,7 +15,7 @@ class Van:
         self.remaining_distance = max_dist
         self.velocity = 50
 
-    def add_packages(self, new_packages: []):
+    def add_packages(self, new_packages:list=[]):
         self.packages.append(new_packages)
 
     def deliver_packages(self, pks_to_deliver):

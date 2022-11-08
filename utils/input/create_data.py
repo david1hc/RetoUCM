@@ -1,8 +1,10 @@
 import pandas as pd
+from utils import chargers_prop
 
 def create_centers():
 
     df = pd.read_csv("utils/data/points_centers.csv")
+    df["chargers_type"] = df["id_centro"].map(chargers_prop)
 
     return df
 

@@ -2,3 +2,13 @@ types:
   - (1, 40, 0, 5)
   - (2, 40, 5, 20)
   - (3, 20, 20, 50)
+charger_type:
+  C1:
+    - slow
+    - fast
+  C2:
+    - slow
+    - slow
+  C3:
+    - slow
+    - slow
