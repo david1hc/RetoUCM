@@ -211,7 +211,7 @@ class Solver:
                 iddle_id = van.van_id
         return iddle_id
 
-    def map_weight_deliver(self, weight):
+    def map_weight2time_deliver(self, weight):
         if weight <= 5:
             time = 5/60
             return time
@@ -221,9 +221,11 @@ class Solver:
         else:
             time = 15/60
             return time
+
     def individual_pkg_time(self, df):
-        df['t_entrega'] = df.peso.apply(self.map_weight_deliver)
+        df['t_entrega'] = df.peso.apply(self.map_weight2time_deliver)
         return df['t_entrega']
+
     def get_deliver_time(self, df_packages):
         df_packages['t_entrega'] = self.individual_pkg_time(df_packages)
         total_distance = df_packages['distancia_p'].sum()
@@ -244,11 +246,10 @@ class Solver:
                 charge_time = center.charge_time[1]
                 center.chargers_occupied[1] = True
             else:
-                charge_time = center.charge_time[0]
+                charge_time = center.charge_time[0]*(len(center.groups_pckgs)-1)
                 center.chargers_occupied[0] = True
         total_time = total_time + charge_time
         return total_time
-
 
     def check_feasible_solution(self):
         max_len = 0
@@ -279,10 +280,9 @@ class Solver:
         return feasible_solution
 
 
-
 if __name__ == "__main__":
 
-    gi = GetInput(100, 20)
+    gi = GetInput(140, 50)  # Limite 115 paquetes, 100 puntos
     gi.save()
     path = gi.path_base
     test_solver = Solver(path_input=path)
