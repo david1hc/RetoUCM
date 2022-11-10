@@ -162,7 +162,10 @@ class Solver:
         while i < df_packages_dist.shape[0]:
             group_tmp = []
             group_tmp.append(i)
-            dist_tmp = df_packages_dist.distancia_cl[i] + df_packages_dist.distancia_p[i]
+            if len(group_tmp) == 1:
+                dist_tmp = df_packages_dist.distancia_cl[i]
+            else:
+                dist_tmp = df_packages_dist.distancia_cl[i] + df_packages_dist.distancia_p[i]
 
             while True:
                 if i+1 < df_packages_dist.shape[0]:
@@ -228,8 +231,8 @@ class Solver:
 
     def get_deliver_time(self, df_packages):
         df_packages['t_entrega'] = self.individual_pkg_time(df_packages)
-        total_distance = df_packages['distancia_p'].sum()
-        total_distance = total_distance + df_packages['distancia_cl'].iloc[0] + df_packages['distancia_cl'].iloc[-1]
+        total_distance = df_packages['distancia_p'].iloc[1:-1].sum() + df_packages['distancia_cl'].iloc[0] + df_packages['distancia_cl'].iloc[-1]
+        # total_distance = total_distance + df_packages['distancia_cl'].iloc[0] + df_packages['distancia_cl'].iloc[-1]
         deliver_time = total_distance/self.velocity
         deliver_time = deliver_time + df_packages['t_entrega'].sum()
         return deliver_time
