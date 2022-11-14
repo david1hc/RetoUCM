@@ -9,8 +9,27 @@ from utils import GetInput
 
 
 class Van:
+    """
+    Clase para represenatar una furgoneta
+    ...
 
+    Attributos
+    ----------
+    TODO
+
+    Methods
+    -------
+    TODO
+    """
     def __init__(self, van_id, max_dist):
+        """
+        Parameters
+        ----------
+        van_id : str
+            El id de la furgoneta
+        max_dist : float
+            La distancia maxima que la furgoneta puede recorrer con la bateria cargada al maximo
+        """
         self.packages = []
         self.battery = float(100)
         self.position = pd.DataFrame(columns=['coord_x', 'coord_y'])
@@ -36,8 +55,38 @@ class Van:
 
 
 class LogisticCenter:
+    """
+    Clase para represenatar un centro logistico
+    ...
 
+    Attributos
+    ----------
+    TODO
+
+    Methods
+    -------
+    TODO
+    """
     def __init__(self, center_id, position, packages=pd.DataFrame(), charger1_type='slow', charger2_type='slow'):
+        """
+        Parameters
+        ----------
+        center_id : str
+            El id del centro logistico
+        position : Pandas DataFrame.
+            Coordenadas del centro logistico
+            Columnas: ['coord_x', 'coord_y']
+
+        packages: Pandas DataFrame.
+            Paquetes almacenados inicialmente en el centro logistico
+            Columnas: ['peso', 'id_centro', 'id_pos', 'id_paquete']
+                -'peso': peso del paquete.
+                -'id_centro': id del centro logistico en el que inicialmente esta almacenado el paquete.
+                -'id_pos': id de la posicion a la que debe ser entregado el paquete.
+                -'id_paquete': id del paquete.
+        charger1_type: str
+            Tipo de carga del cargador 1. ('slow' o 'fast')
+        """
         self.center_id = center_id
         self.position = position
         self.df_packages = packages
@@ -56,15 +105,39 @@ class LogisticCenter:
 
 
 class Solver:
+    """
+    Clase para solucionar el problema de optimizacion de rutas con vehiculos electricos.
+    ...
 
-    def __init__(self, weight_maxdist=False, path_input=None, verbose=False) -> None:
+    Attributos
+    ----------
+    TODO
 
+    Methods
+    -------
+    TODO
+    """
+    def __init__(self, bool_weight_maxdist=False, path_input=None, verbose=False) -> None:
+        """
+        Parameters
+        ----------
+        bool_weight_maxdist : bool
+            Flag que toma el valor:
+                -True si distancia maxima a recorrer = distancia maxima sin peso transportado.
+                -False si distancia maxima a recorrer = distancia maxima con peso maximo transportado.
+
+        path input : str
+            ruta a directorio con los 3 archivos csv de entrada:
+                'centers.csv'
+                'packages.csv'
+                'points.csv'
+        """
         self.df_centers = pd.read_csv(path_input+"/centers.csv", sep=';')
         # self.df_chargers = pd.read_csv("../properties/chargers.csv")
         self.df_packages = pd.read_csv(path_input+"/packages.csv", sep=';')
         self.logistic_centers = self.set_centers()
         self.df_points = pd.read_csv(path_input+"/points.csv", sep=';')
-        self.max_dist = self.set_max_dist(weight_maxdist)
+        self.max_dist = self.set_max_dist(bool_weight_maxdist)
         self.vans_list = [Van(van_id='1', max_dist=self.max_dist), Van(van_id='2', max_dist=self.max_dist), Van(van_id='3', max_dist=self.max_dist), Van(van_id='4', max_dist=self.max_dist)]
         self.velocity = 50
         self.dist_factor = self.calculate_dist_factor()
