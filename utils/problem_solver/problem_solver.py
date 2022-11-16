@@ -5,6 +5,7 @@ import pandas as pd
 from scipy.spatial.distance import pdist
 from scipy.spatial.distance import squareform
 import numpy as np
+from datetime import time, timedelta, datetime, date
 from utils import GetInput
 
 
@@ -117,7 +118,7 @@ class Solver:
     -------
     TODO
     """
-    def __init__(self, bool_weight_maxdist=False, path_input=None, verbose=False) -> None:
+    def __init__(self, bool_weight_maxdist=False, path_input=None, save_output=False, verbose=False) -> None:
         """
         Parameters
         ----------
@@ -141,9 +142,12 @@ class Solver:
         self.vans_list = [Van(van_id='1', max_dist=self.max_dist), Van(van_id='2', max_dist=self.max_dist), Van(van_id='3', max_dist=self.max_dist), Van(van_id='4', max_dist=self.max_dist)]
         self.velocity = 50
         self.dist_factor = self.calculate_dist_factor()
-        self.feasible_solution = self.check_feasible_solution()
+        self.output_df = self.init_output_df()
+        self.feasible_solution = self.check_feasible_solution(save_output=save_output)
         self.groups_packages = None
 
+    def save_solution(self, outputpath):
+        self.output_df.to_csv(outputpath, index=False)
     def calculate_dist_factor(self):
         coord_c1 = self.df_centers[self.df_centers['id_centro'] == 'C1'][['coord_x', 'coord_y']].reset_index(drop=True)
         coord_c2 = self.df_centers[self.df_centers['id_centro'] == 'C2'][['coord_x', 'coord_y']].reset_index(drop=True)
@@ -152,6 +156,9 @@ class Solver:
         factor_km = dist_km/dist_c1c2.iloc[0]
         return factor_km
 
+    def init_output_df(self):
+        df = pd.DataFrame(columns=['id_furgo', 'id_pos', 'hora_llegada', 'hora_salida', 'ids_paquetes'])
+        return df
     def _split_pckgs_by_center(self, center_id):
         packages = self.df_packages.loc[self.df_packages['id_centro'] == center_id]
         return packages
@@ -282,9 +289,10 @@ class Solver:
 
     def get_iddle_van(self):
         iddle_id = None
-        for van in self.vans_list:
-            if len(van.packages) == 0:
-                iddle_id = van.van_id
+        for i in range(len(self.vans_list)):
+            if len(self.vans_list[i].packages) == 0:
+                iddle_id = self.vans_list[i].van_id
+                return i, iddle_id
         return iddle_id
 
     def map_weight2time_deliver(self, weight):
@@ -310,12 +318,101 @@ class Solver:
         deliver_time = deliver_time + df_packages['t_entrega'].sum()
         return deliver_time
 
-    def assign_pckgs2vans(self, center):
-        # id = self.get_iddle_van()
+    def add_group2output(self, van_id, pkgs_groups):
+        # Funcion que guarda la ruta de una furgoneta van_id para entregar todos los paquetes de la lista pkgs_groups
+        # en el data fram output. Para cada grupo de paquetes se repite:
+        #
+        #   paso_1: recoger paquetes:
+        #      -hora_salida=hora_llegada
+        #      -ids_paquetes=lista paquetes que se va a entregar antes de volver al centro logistico.
+        #      -id_pos=id centro logistico
+        #
+        #   paso_2 a paso_n-1: entregar paquetes en order.
+        #
+        #   paso_n: volver al centro logistico:
+        #      -si ya se ha entregado el ultimo grupo de paquetes que le quedaba a la furgoneta por entregar, no se
+        #      recarga la bateria.
+        #      -si no es el ultimo grupo de paquetes que le queda a la furgoneta por entregar, se recarga la bateria.
+
+        for n_g, group in enumerate(pkgs_groups):
+            i = 0
+            while True:
+                if i == 0:
+                    if len(self.output_df.loc[self.output_df.id_furgo==van_id].index) == 0:
+                        # El primer paquete repartido por la furgoneta empieza a las 8am
+                        hora_llegada = time(8, 0, 0)
+                        hora_salida = hora_llegada
+                        id_pos = group.iloc[0].id_centro
+                        ids_paquetes = group.id_paquete.tolist()
+                    else:
+                        id_pos = group.iloc[i].id_pos
+                        # Ultima hora salida guardada en output_df
+                        prev_time = self.output_df.hora_salida.iloc[-1]
+                        # Calculo hora_llegada del centro logistico al punto de entrega
+                        delta_t_llegada = group.distancia_cl.iloc[i]/self.velocity
+                        dt_hora_llegada = datetime.combine(date.today(), prev_time) + timedelta(hours=delta_t_llegada)
+                        hora_llegada = dt_hora_llegada.time()
+                        # Calculo hora_salida
+                        t_entrega = self.individual_pkg_time(group.loc[group.id_pos == group.iloc[i].id_pos])
+                        delta_t_salida = t_entrega.sum()
+                        dt_hora_salida = dt_hora_llegada + timedelta(hours=delta_t_salida)
+                        hora_salida = dt_hora_salida.time()
+                        ids_paquetes = group.loc[group.id_pos == group.iloc[i].id_pos]['id_paquete'].tolist()
+                        i = i + len(ids_paquetes)
+
+                    self.output_df.loc[len(self.output_df.index)] = [van_id, id_pos, hora_llegada, hora_salida, ids_paquetes]
+                else:
+                    id_pos = group.iloc[i].id_pos
+                    # Ultima hora salida guardada en output_df
+                    prev_time = self.output_df.hora_salida.iloc[-1]
+                    # Calculo hora_llegada del punto de entrega anterior al nuevo punto de entrega
+                    delta_t_llegada = group.distancia_p.iloc[i] / self.velocity
+                    dt_hora_llegada = datetime.combine(date.today(), prev_time) + timedelta(hours=delta_t_llegada)
+                    hora_llegada = dt_hora_llegada.time()
+                    # Calculo hora_salida
+                    t_entrega = self.individual_pkg_time(group.loc[group.id_pos == group.iloc[i].id_pos])
+                    delta_t_salida = t_entrega.sum()
+                    dt_hora_salida = dt_hora_llegada + timedelta(hours=delta_t_salida)
+                    hora_salida = dt_hora_salida.time()
+                    ids_paquetes = group.loc[group.id_pos == group.iloc[i].id_pos]['id_paquete'].tolist()
+                    self.output_df.loc[len(self.output_df.index)] = [van_id, id_pos, hora_llegada, hora_salida,
+                                                                     ids_paquetes]
+                    i = i + len(ids_paquetes)
+
+                if i == len(group):
+                    id_pos = group.iloc[0].id_centro
+                    prev_time = self.output_df.hora_salida.iloc[-1]
+                    # Calculo hora_llegada del punto de entrega al centro logistico
+                    delta_t_llegada = group.distancia_cl.iloc[-1]/self.velocity
+                    dt_hora_llegada = datetime.combine(date.today(), prev_time) + timedelta(hours=delta_t_llegada)
+                    hora_llegada = dt_hora_llegada.time()
+                    if n_g == len(pkgs_groups)-1:
+                        # Para despues del ultimo grupo de paquetes no se carga la bateria
+                        hora_salida = hora_llegada
+                        ids_paquetes = []
+                    else:
+                        charge_time = 3  # TODO: coger el tiempo de carga rapido o lento segun disponibilidad
+                        delta_t_salida = charge_time
+                        dt_hora_salida = dt_hora_llegada + timedelta(hours=delta_t_salida)
+                        hora_salida = dt_hora_salida.time()
+                        ids_paquetes = pkgs_groups[n_g+1]['id_paquete'].tolist()
+                    self.output_df.loc[len(self.output_df.index)] = [van_id, id_pos, hora_llegada, hora_salida,
+                                                                     ids_paquetes]
+                    break
+
+
+
+
+    def assign_pckgs2vans(self, center, save_output=False):
+        #
+        van_n, van_id = self.get_iddle_van()
+        self.vans_list[van_n].packages = center.groups_pckgs
         total_time = 0
         for group in center.groups_pckgs:
             deliver_time = self.get_deliver_time(group)
             total_time = total_time + deliver_time
+        if save_output:
+            self.add_group2output(van_id, center.groups_pckgs)
         charge_time = 0
         if len(center.groups_pckgs) > 1:
             if center.chargers_occupied[0]:
@@ -327,7 +424,7 @@ class Solver:
         total_time = total_time + charge_time
         return total_time
 
-    def check_feasible_solution(self):
+    def check_feasible_solution(self, save_output=False):
         max_len = 0
         max_len_center = ''
 
@@ -338,14 +435,14 @@ class Solver:
                 max_len_center =center.center_id
         vans_time = []
         for center in self.logistic_centers:
-            if center == max_len_center and max_len > 1:
+            if center.center_id == max_len_center and max_len > 1:
                 n_mid_pckg = np.floor(max_len/2)
-                time = self.assign_pckgs2vans(center.groups_pckgs[:n_mid_pckg])
+                time = self.assign_pckgs2vans(center.groups_pckgs[:n_mid_pckg], save_output=save_output)
                 vans_time.append(time)
-                time = self.assign_pckgs2vans(center.groups_pckgs[n_mid_pckg:])
+                time = self.assign_pckgs2vans(center.groups_pckgs[n_mid_pckg:], save_output=save_output)
                 vans_time.append(time)
             else:
-                time = self.assign_pckgs2vans(center)
+                time = self.assign_pckgs2vans(center, save_output=save_output)
                 vans_time.append(time)
 
         if max(vans_time) > 8:
@@ -358,10 +455,12 @@ class Solver:
 
 if __name__ == "__main__":
 
-    gi = GetInput(140, 50)  # Limite 115 paquetes, 100 puntos
+    gi = GetInput(100, 50)  # Limite 115 paquetes, 100 puntos
     gi.save()
     path = gi.path_base
-    test_solver = Solver(path_input=path)
+    output_path = os.path.join(path, 'output.csv')
+    test_solver = Solver(path_input=path, save_output=True)
+    test_solver.save_solution(output_path)
     if test_solver.feasible_solution:
         print('There is a feasible solution for the input dataset')
     else:
