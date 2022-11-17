@@ -400,26 +400,23 @@ class Solver:
                                                                      ids_paquetes]
                     break
 
-
-
-
-    def assign_pckgs2vans(self, center, save_output=False):
+    def assign_pckgs2vans(self, groups_pckgs, center, save_output=False):
         #
         van_n, van_id = self.get_iddle_van()
-        self.vans_list[van_n].packages = center.groups_pckgs
+        self.vans_list[van_n].packages = groups_pckgs
         total_time = 0
-        for group in center.groups_pckgs:
+        for group in groups_pckgs:
             deliver_time = self.get_deliver_time(group)
             total_time = total_time + deliver_time
         if save_output:
-            self.add_group2output(van_id, center.groups_pckgs)
+            self.add_group2output(van_id, groups_pckgs)
         charge_time = 0
-        if len(center.groups_pckgs) > 1:
+        if len(groups_pckgs) > 1:
             if center.chargers_occupied[0]:
                 charge_time = center.charge_time[1]
                 center.chargers_occupied[1] = True
             else:
-                charge_time = center.charge_time[0]*(len(center.groups_pckgs)-1)
+                charge_time = center.charge_time[0]*(len(groups_pckgs)-1)
                 center.chargers_occupied[0] = True
         total_time = total_time + charge_time
         return total_time
@@ -436,13 +433,13 @@ class Solver:
         vans_time = []
         for center in self.logistic_centers:
             if center.center_id == max_len_center and max_len > 1:
-                n_mid_pckg = np.floor(max_len/2)
-                time = self.assign_pckgs2vans(center.groups_pckgs[:n_mid_pckg], save_output=save_output)
+                n_mid_pckg = int(np.floor(max_len/2))
+                time = self.assign_pckgs2vans(center.groups_pckgs[:n_mid_pckg],center, save_output=save_output)
                 vans_time.append(time)
-                time = self.assign_pckgs2vans(center.groups_pckgs[n_mid_pckg:], save_output=save_output)
+                time = self.assign_pckgs2vans(center.groups_pckgs[n_mid_pckg:],center, save_output=save_output)
                 vans_time.append(time)
             else:
-                time = self.assign_pckgs2vans(center, save_output=save_output)
+                time = self.assign_pckgs2vans(center.groups_pckgs, center, save_output=save_output)
                 vans_time.append(time)
 
         if max(vans_time) > 8:
@@ -455,7 +452,7 @@ class Solver:
 
 if __name__ == "__main__":
 
-    gi = GetInput(100, 50)  # Limite 115 paquetes, 100 puntos
+    gi = GetInput(113, 50)  # Limite 115 paquetes, 100 puntos
     gi.save()
     path = gi.path_base
     output_path = os.path.join(path, 'output.csv')
